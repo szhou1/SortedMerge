@@ -41,8 +41,8 @@ require('./solution/sync-sorted-merge')(syncLogSources, new Printer())
  * or boolean false once the LogSource has ended.
  */
 
-const asyncLogSources = []
-for (let i = 0; i < sourceCount; i++) {
-	asyncLogSources.push(new LogSource())
-}
-require('./solution/async-sorted-merge')(asyncLogSources, new Printer())
+// const asyncLogSources = []
+// for (let i = 0; i < sourceCount; i++) {
+// 	asyncLogSources.push(new LogSource())
+// }
+// require('./solution/async-sorted-merge')(asyncLogSources, new Printer())
