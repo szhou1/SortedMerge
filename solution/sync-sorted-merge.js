@@ -3,7 +3,7 @@ const Heap = require('heap');
 
 module.exports = (logSources, printer) => {
 
-  var heap = new Heap((a,b) => new Date(a.date) - new Date(b.date));
+  var heap = new Heap((a,b) => a.date - b.date);
 
   // push initial entry for each source into heap
   logSources.forEach((source, i) => {

@@ -4,9 +4,11 @@ const Heap = require('heap');
 
 module.exports = (logSources, printer) => {
 
-  var heap = new Heap((a,b) => new Date(a.date) - new Date(b.date));
+  // var heap = new Heap((a,b) => new Date(a.date) - new Date(b.date));
+  var heap = new Heap((a,b) => a.date - b.date);
 
-  var totalCounter = 0;
+  // var totalCounter = 0;
+  const BATCH_SIZE = logSources.length * 8;
 
   var sourceLogEntryCounter = {};
   var indexArray = [];
@@ -16,7 +18,7 @@ module.exports = (logSources, printer) => {
     // edge case for when heap is finally empty
     if(heap.empty()) {
       printer.done();
-      console.log('my counter', totalCounter);
+      // console.log('my counter', totalCounter);
       return;
     }
 
@@ -44,7 +46,7 @@ module.exports = (logSources, printer) => {
 
       if(entry) {
         sourceLogEntryCounter[index] = (sourceLogEntryCounter[index] || 0) + 1;
-        totalCounter++;
+        // totalCounter++;
         
         var newEntry = entry;
         newEntry['sourceId'] = index;
@@ -55,21 +57,19 @@ module.exports = (logSources, printer) => {
 
     });
 
-    indexArray = [];
   }
 
   function grabEntriesFromSources() {
     var newEntryPromiseArray = [];
+    indexArray = [];
 
-    const COUNTER = logSources.length * 8;
-
-    for(var i = 0, k = 0; i < logSources.length && k < COUNTER; i++, k++) {
+    for(var i = 0, k = 0; i < logSources.length && k < BATCH_SIZE; i++, k++) {
 
       if(activeSources[i]) {
         newEntryPromiseArray.push(logSources[i].popAsync());
         indexArray.push(i);
       }
-      
+
       if(i == logSources.length - 1) {
         i = -1;
       }        
