@@ -10,37 +10,35 @@ module.exports = (logSources, printer) => {
 
   var sourceLogEntryCounter = {};
   var indexArray = [];
+  var activeSources = logSources.map(() => true);
 
   function promiseWhile() {
-    // console.log('heapsize befor: ', heap.size());
     // edge case for when heap is finally empty
     if(heap.empty()) {
       printer.done();
       console.log('my counter', totalCounter);
       return;
     }
+
   
     var min = heap.peek();
 
     while(min && sourceLogEntryCounter[min.sourceId] >= 1) {
       printer.print(heap.pop());
-      // console.log(sourceLogEntryCounter[min.sourceId])
       sourceLogEntryCounter[min.sourceId] = sourceLogEntryCounter[min.sourceId] - 1;
-      // console.log(sourceLogEntryCounter[min.sourceId])
+
       if(sourceLogEntryCounter[min.sourceId] >= 1) {
         min = heap.peek();
       }
     }
     
-    // console.log('after printing: ', sourceLogEntryCounter);
-
-    // console.log('heapsize after: ', heap.size());
     // resolve the new entry promise, then push new entry to heap, loop
     return main();
 
   }
 
   function pushToHeap(entryArray) {
+
     entryArray.forEach((entry, i) => {
       var index = indexArray[i];
 
@@ -51,30 +49,32 @@ module.exports = (logSources, printer) => {
         var newEntry = entry;
         newEntry['sourceId'] = index;
         heap.push(newEntry);
-      } 
+      } else {
+        activeSources[index] = false;
+      }
 
     });
+
+    indexArray = [];
   }
 
   function grabEntriesFromSources() {
     var newEntryPromiseArray = [];
-    const COUNTER = logSources.length * 10;
+
+    const COUNTER = logSources.length * 8;
 
     for(var i = 0, k = 0; i < logSources.length && k < COUNTER; i++, k++) {
-      // console.log(i , k)
-      newEntryPromiseArray.push(logSources[i].popAsync());
-      indexArray.push(i);
 
+      if(activeSources[i]) {
+        newEntryPromiseArray.push(logSources[i].popAsync());
+        indexArray.push(i);
+      }
+      
       if(i == logSources.length - 1) {
         i = -1;
-      }
+      }        
     }
 
-    // console.log(newEntryPromiseArray.length)
-    // logSources.forEach(source => {
-    //   newEntryPromiseArray.push(source.popAsync());
-    // })
-    // console.log('after grabbing', sourceLogEntryCounter)
     return newEntryPromiseArray;
   }
 
