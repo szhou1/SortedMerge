@@ -14,13 +14,16 @@ module.exports = (logSources, printer) => {
   var entriesArray = [];
   var arr = [];
 
+  var sourceLogEntryCounter = {};
+
   logSources.forEach(source => {
     entriesArray.push(source.popAsync())
   })
 
-  var newEntryPromise;
+  var newEntryPromiseArray = [];
+  var indexArray = [];
 
-  var currentSourceId = 0;
+  const CONCURRENT_ENTRIES = 100;
 
   function promiseWhile() {
 
@@ -31,31 +34,63 @@ module.exports = (logSources, printer) => {
     }
   
     // pop off most recent entry, print it out
-    var entry = heap.pop();
-    printer.print(entry);
-    
-    // keep track of most recent source id
-    currentSourceId = entry.sourceId;
+    var entry;
 
+    var min = heap.peek();
+
+    while(min && sourceLogEntryCounter[min.sourceId] > 0) {
+
+      entry = heap.pop();
+      printer.print(entry);
+      sourceLogEntryCounter[min.sourceId] = sourceLogEntryCounter[min.sourceId] - 1;
+      min = heap.peek();
+    }
+    
     // get next entry from last source id
-    newEntryPromise = logSources[currentSourceId].popAsync();
+    newEntryPromiseArray = [];
+    indexArray = [];
+
+    for(var i = 0, counter = 0; i < logSources.length && counter < CONCURRENT_ENTRIES; i++, counter++) {
+      var entryPromise = logSources[i].popAsync();
+      newEntryPromiseArray.push(entryPromise);
+      indexArray.push(i);
+
+      sourceLogEntryCounter[i] = (sourceLogEntryCounter[i] || 0) + 1;
+
+      if(i == logSources.length - 1) i = 0;
+    }
+
+    // console.log(newEntryPromiseArray.length)
+    // console.log(heap.size())
 
     // resolve the new entry promise, then push new entry to heap, loop
-    return P.resolve(newEntryPromise)
+    return P.all(newEntryPromiseArray)
             .then(e => {
-              pushToHeap(e, currentSourceId);
+              pushToHeap(e);
             })
             .then(promiseWhile);
 
   }
 
-  function pushToHeap(entry, currentSourceId) {
-    var newEntry = entry;
-    if(entry) {
-      newEntry['sourceId'] = currentSourceId;
-      heap.push(newEntry);
-    }
+  function pushToHeap(entryArray) {
+    entryArray.forEach((entry, i) => {
+
+      var newEntry = entry;
+      if(entry) {
+        newEntry['sourceId'] = indexArray[i];
+        heap.push(newEntry);
+      }
+
+    })
   }
+
+  // function grabEntriesFromSource(sourceId, count) {
+  //   var entryPromises = [];
+  //   for(var i = 0; i < count; i++) {
+  //     entryPromises.push(logSources[sourceId].popAsync());
+  //   }
+  //   return entryPromises;
+  // }
 
   // resolve all initial entries
   P.all(entriesArray)
@@ -69,7 +104,5 @@ module.exports = (logSources, printer) => {
       // console.log(heap)
     })
     .then(promiseWhile)
-
-
 
 }
