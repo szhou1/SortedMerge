@@ -9,6 +9,7 @@ module.exports = (logSources, printer) => {
   var totalCounter = 0;
 
   var sourceLogEntryCounter = {};
+  var indexArray = [];
 
   function promiseWhile() {
     // console.log('heapsize befor: ', heap.size());
@@ -41,27 +42,38 @@ module.exports = (logSources, printer) => {
 
   function pushToHeap(entryArray) {
     entryArray.forEach((entry, i) => {
+      var index = indexArray[i];
 
-      var newEntry = entry;
       if(entry) {
-      sourceLogEntryCounter[i] = (sourceLogEntryCounter[i] || 0) + 1;
+        sourceLogEntryCounter[index] = (sourceLogEntryCounter[index] || 0) + 1;
         totalCounter++;
-        newEntry['sourceId'] = i;
+        
+        var newEntry = entry;
+        newEntry['sourceId'] = index;
         heap.push(newEntry);
-      } else {
-        // console.log("*******************************************")
-        // sourceLogEntryCounter[i] = sourceLogEntryCounter[i] - 1;
-      }
+      } 
 
-    })
+    });
   }
 
   function grabEntriesFromSources() {
     var newEntryPromiseArray = [];
+    const COUNTER = logSources.length * 10;
 
-    logSources.forEach((source, i) => {
-      newEntryPromiseArray.push(source.popAsync());
-    })
+    for(var i = 0, k = 0; i < logSources.length && k < COUNTER; i++, k++) {
+      // console.log(i , k)
+      newEntryPromiseArray.push(logSources[i].popAsync());
+      indexArray.push(i);
+
+      if(i == logSources.length - 1) {
+        i = -1;
+      }
+    }
+
+    // console.log(newEntryPromiseArray.length)
+    // logSources.forEach(source => {
+    //   newEntryPromiseArray.push(source.popAsync());
+    // })
     // console.log('after grabbing', sourceLogEntryCounter)
     return newEntryPromiseArray;
   }
