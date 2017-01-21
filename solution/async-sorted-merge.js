@@ -21,9 +21,9 @@ module.exports = (logSources, printer) => {
   })
 
   var newEntryPromiseArray = [];
-  var indexArray = [];
+  // var indexArray = [];
 
-  const CONCURRENT_ENTRIES = 100;
+  // const CONCURRENT_ENTRIES = 100;
 
   function promiseWhile() {
 
@@ -48,16 +48,16 @@ module.exports = (logSources, printer) => {
     
     // get next entry from last source id
     newEntryPromiseArray = [];
-    indexArray = [];
+    // indexArray = [];
 
-    for(var i = 0, counter = 0; i < logSources.length && counter < CONCURRENT_ENTRIES; i++, counter++) {
+    for(var i = 0; i < logSources.length; i++) {
       var entryPromise = logSources[i].popAsync();
       newEntryPromiseArray.push(entryPromise);
-      indexArray.push(i);
+      // indexArray.push(i);
 
       sourceLogEntryCounter[i] = (sourceLogEntryCounter[i] || 0) + 1;
 
-      if(i == logSources.length - 1) i = 0;
+      // if(i == logSources.length - 1) i = 0;
     }
 
     // console.log(newEntryPromiseArray.length)
@@ -77,7 +77,7 @@ module.exports = (logSources, printer) => {
 
       var newEntry = entry;
       if(entry) {
-        newEntry['sourceId'] = indexArray[i];
+        newEntry['sourceId'] = i;
         heap.push(newEntry);
       }
 
