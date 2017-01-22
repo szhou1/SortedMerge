@@ -4,7 +4,7 @@ Merging Logs
 See https://docs.google.com/document/d/1A6wH-Hifd2uAcaNBMDE4iUH4NBCs6u8vjnkbDWMU8h0/edit for instructions.
 
 
-###Analysis:
+#Analysis:
 
 ##sync:
 
@@ -18,7 +18,7 @@ Now that every log entry will have a slight delay, the order in which they resol
 
 Popping from heap and printing works differently from the sync version. Before popping the min log entry from heap, the algorithm first checks if heap contains another log entry from the same source. And as long as that is true, it pops and prints the min.
 
-#Optimizations:
+###Optimizations:
 
 1. Large batch processing - The main bottleneck with the above approach is waiting for Promise.all() to resolve. If we can reduce the number of times Promise.all() is called, it should speed it up. Each time the algorithm gets new log entries, it fetches them by a specific factor > 1.
 2. Ignore Drained Sources - if we have a lot of sources, the algorithm will eventually get to a point where it will be popping from sources that are empty (getting promises that resolve to false), which will have a delay, which then will be caught and thrown out later. To prevent this superfluous work, an additional array is created to keep track of the status of each log source. When grabbing new log entries from sources, if the source is indicated as drained, then it is simply ignored.
