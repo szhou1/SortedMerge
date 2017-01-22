@@ -1,11 +1,11 @@
-'use strict'
-const P = require('bluebird')
+'use strict';
+const P = require('bluebird');
 const Heap = require('heap');
 
 module.exports = (logSources, printer) => {
 
   // a min heap / priority queue that is ordered by earliest log entry first
-  var heap = new Heap((a,b) => a.date - b.date);
+  var heap = new Heap((a, b) => a.date - b.date);
 
   // the number of log entries to grab each time
   const BATCH_SIZE = logSources.length * 8;
@@ -32,7 +32,7 @@ module.exports = (logSources, printer) => {
   function promiseWhile() {
 
     // case for when heap is finally empty
-    if(heap.empty()) {
+    if (heap.empty()) {
       printer.done();
       return;
     }
@@ -41,11 +41,11 @@ module.exports = (logSources, printer) => {
     // from the same source in the heap, print it.
     var min = heap.peek();
 
-    while(min && sourceLogEntryCounter[min.sourceId] >= 1) {
+    while (min && sourceLogEntryCounter[min.sourceId] >= 1) {
       printer.print(heap.pop());
       sourceLogEntryCounter[min.sourceId] = sourceLogEntryCounter[min.sourceId] - 1;
 
-      if(sourceLogEntryCounter[min.sourceId] >= 1) {
+      if (sourceLogEntryCounter[min.sourceId] >= 1) {
         min = heap.peek();
       }
     }
@@ -62,9 +62,8 @@ module.exports = (logSources, printer) => {
     entryArray.forEach((entry, i) => {
       var index = indexArray[i];
 
-      if(entry) {
+      if (entry) {
         sourceLogEntryCounter[index] = (sourceLogEntryCounter[index] || 0) + 1;
-        // totalCounter++;
         
         var newEntry = entry;
         newEntry['sourceId'] = index;
@@ -81,17 +80,18 @@ module.exports = (logSources, printer) => {
   // Grabs new log entries from log sources based on batch size
   //******************************************
   function grabEntriesFromSources() {
+    
     var newEntryPromiseArray = [];
     indexArray = [];
 
-    for(var i = 0, k = 0; i < logSources.length && k < BATCH_SIZE; i++, k++) {
+    for (var i = 0, k = 0; i < logSources.length && k < BATCH_SIZE; i++, k++) {
 
-      if(activeSources[i]) {
+      if (activeSources[i]) {
         newEntryPromiseArray.push(logSources[i].popAsync());
         indexArray.push(i);
       }
 
-      if(i == logSources.length - 1) {
+      if (i === logSources.length - 1) {
         i = -1;
       }        
     }
@@ -106,12 +106,11 @@ module.exports = (logSources, printer) => {
   // call recursive function to repeat this process
   //******************************************
   function main() {
-    // move inital entries for each source into heap, then call while loop
     P.all(grabEntriesFromSources())
       .then(pushToHeap)
       .then(promiseWhile);
-    
   }
 
+  // initial function call
   main();
-}
+};
