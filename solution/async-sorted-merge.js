@@ -4,25 +4,41 @@ const Heap = require('heap');
 
 module.exports = (logSources, printer) => {
 
-  // var heap = new Heap((a,b) => new Date(a.date) - new Date(b.date));
+  // a min heap / priority queue that is ordered by earliest log entry first
   var heap = new Heap((a,b) => a.date - b.date);
 
-  // var totalCounter = 0;
+  // the number of log entries to grab each time
   const BATCH_SIZE = logSources.length * 8;
 
-  var sourceLogEntryCounter = {};
+  // because we are batching and we need to keep track of the source id,
+  // this array holds a list of source indices that pair with newEntryPromiseArray
   var indexArray = [];
+
+  // keep track of how many log entries from each log source are inside the heap
+  // [3, 1, 0] means 3 entries from source 0, 1 entry from source 1, 0 entries from source 0
+  var sourceLogEntryCounter = {};
+
+  // keep track of log sources that already depleted so we do not perform tasks on them
   var activeSources = logSources.map(() => true);
 
+  //********************************************
+  // A recursive function that
+  // prints as many entries as it can
+  // grabs a new batch of log entry promises
+  // waits for all of them to resolve asynchronously
+  // pushes new entries to heap
+  // repeat
+  //********************************************
   function promiseWhile() {
-    // edge case for when heap is finally empty
+
+    // case for when heap is finally empty
     if(heap.empty()) {
       printer.done();
-      // console.log('my counter', totalCounter);
       return;
     }
 
-  
+    // get the most recent log entry and as long as there is another log entry
+    // from the same source in the heap, print it.
     var min = heap.peek();
 
     while(min && sourceLogEntryCounter[min.sourceId] >= 1) {
@@ -34,11 +50,13 @@ module.exports = (logSources, printer) => {
       }
     }
     
-    // resolve the new entry promise, then push new entry to heap, loop
     return main();
 
   }
 
+  //******************************************
+  // Pushes each log entry into heap after adding the sourceId
+  //******************************************
   function pushToHeap(entryArray) {
 
     entryArray.forEach((entry, i) => {
@@ -59,6 +77,9 @@ module.exports = (logSources, printer) => {
 
   }
 
+  //******************************************
+  // Grabs new log entries from log sources based on batch size
+  //******************************************
   function grabEntriesFromSources() {
     var newEntryPromiseArray = [];
     indexArray = [];
@@ -78,6 +99,12 @@ module.exports = (logSources, printer) => {
     return newEntryPromiseArray;
   }
 
+  //******************************************
+  // grabs initial batch of log entry promises
+  // waits for all of them to resolve asynchronously, returns an array of LogEntries
+  // pushes new entries to heap
+  // call recursive function to repeat this process
+  //******************************************
   function main() {
     // move inital entries for each source into heap, then call while loop
     P.all(grabEntriesFromSources())
